@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "461429969883",
+    "project_id": "wooju-study-library",
+    "storage_bucket": "wooju-study-library.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:461429969883:android:e165b13e77c9b53ec4cdfe",
+        "android_client_info": {
+          "package_name": "com.example.wooju_study_library"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg-cr5R_4jhfZ32w9A_epUCZvkAckWnWw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
