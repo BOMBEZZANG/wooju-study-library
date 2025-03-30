@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 import 'Question_type_Select.dart';
+import 'PrivacyPolicyScreen.dart'; // 개인정보처리방침 화면 import
 
 class HomePage extends StatefulWidget {
   @override
@@ -83,6 +84,19 @@ class _HomePageState extends State<HomePage> {
               _showSearchDialog();
             },
           ),
+          // 개인정보처리방침 버튼 추가
+          IconButton(
+            icon: Icon(Icons.privacy_tip_outlined, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PrivacyPolicyScreen(),
+                ),
+              );
+            },
+            tooltip: '개인정보처리방침',
+          ),
         ],
       ),
       body: Column(
@@ -123,9 +137,29 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
+          // 상단 광고 영역 (AdSense 승인 후 활성화)
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            height: 90,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey.shade50,
+            ),
+            child: Center(
+              child: Text(
+                'Advertisement',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+
           // 카테고리 섹션 타이틀
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 40, 32, 16),
+            padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
             child: Text(
               '자격증 유형',
               style: TextStyle(
@@ -200,6 +234,26 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
+          // 중간 광고 영역 (AdSense 승인 후 활성화)
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+            height: 90,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey.shade50,
+            ),
+            child: Center(
+              child: Text(
+                'Advertisement',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+
           // 시험 목록 섹션 타이틀
           Padding(
             padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
@@ -264,39 +318,32 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.grey.shade200,
                               ),
                               itemBuilder: (context, index) {
-                                return ListTile(
-                                  title: Text(
-                                    examNames[index],
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  subtitle: Text(selectedCategory),
-                                  leading: Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Icons.description_outlined,
-                                      color: Colors.blue.shade700,
-                                    ),
-                                  ),
-                                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => QuestionTypeSelect(
-                                          examName: examNames[index],
+                                // 4개 항목마다 인라인 광고 표시 (AdSense 승인 후 활성화)
+                                if (index > 0 && index % 4 == 0) {
+                                  return Column(
+                                    children: [
+                                      Container(
+                                        margin: EdgeInsets.symmetric(vertical: 8),
+                                        height: 70,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey.shade200),
+                                          color: Colors.grey.shade50,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Advertisement',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade400,
+                                              fontSize: 14,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                );
+                                      _buildExamListItem(index),
+                                    ],
+                                  );
+                                }
+                                return _buildExamListItem(index);
                               },
                             ),
                           ),
@@ -305,6 +352,77 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      // 하단 저작권 및 개인정보 링크 정보
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 32),
+        color: Colors.grey.shade100,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '© 2025 우주도서관 SPACE',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PrivacyPolicyScreen(),
+                  ),
+                );
+              },
+              child: Text(
+                '개인정보처리방침',
+                style: TextStyle(
+                  color: Colors.blue[600],
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 시험 목록 아이템 위젯
+  Widget _buildExamListItem(int index) {
+    return ListTile(
+      title: Text(
+        examNames[index],
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(selectedCategory),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.description_outlined,
+          color: Colors.blue.shade700,
+        ),
+      ),
+      trailing: Icon(Icons.arrow_forward_ios, size: 16),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => QuestionTypeSelect(
+              examName: examNames[index],
+            ),
+          ),
+        );
+      },
     );
   }
 
