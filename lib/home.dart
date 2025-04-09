@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 import 'Question_type_Select.dart';
-import 'PrivacyPolicyScreen.dart'; // 개인정보처리방침 화면 import
+import 'PrivacyPolicyScreen.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -77,6 +77,14 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         backgroundColor: Colors.black,
         centerTitle: false,
+        title: Text(
+          '우주도서관 SPACE',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.search, color: Colors.white),
@@ -84,7 +92,6 @@ class _HomePageState extends State<HomePage> {
               _showSearchDialog();
             },
           ),
-          // 개인정보처리방침 버튼 추가
           IconButton(
             icon: Icon(Icons.privacy_tip_outlined, color: Colors.white),
             onPressed: () {
@@ -99,48 +106,28 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      // SingleChildScrollView를 body에 직접 사용하지 않고 내부 레이아웃 수정
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 히어로 섹션
+          // 히어로 섹션 - 높이 축소
           Container(
             width: double.infinity,
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.black,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '우주도서관 SPACE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    '다양한 국가기술자격 기출문제를 무료로 풀어보세요',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                ],
+            color: Colors.black,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              '다양한 국가기술자격 기출문제를 무료로 풀어보세요',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
               ),
             ),
           ),
 
-          // 상단 광고 영역 (AdSense 승인 후 활성화)
+          // 상단 광고 영역 - 높이 축소
           Container(
-            margin: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            height: 90,
+            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 60, // 높이 축소
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
@@ -151,74 +138,85 @@ class _HomePageState extends State<HomePage> {
                 'Advertisement',
                 style: TextStyle(
                   color: Colors.grey.shade400,
-                  fontSize: 14,
+                  fontSize: 12,
                 ),
               ),
             ),
           ),
 
-          // 카테고리 섹션 타이틀
+          // 카테고리 필터 - 컴팩트하게 수정
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
-            child: Text(
-              '자격증 유형',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-          ),
-
-          // 카테고리 필터
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: categories.map((category) {
-                bool isSelected = selectedCategory == category;
-                return ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedCategory = category;
-                    });
-                    _loadExamNames(category);
-                  },
-                  child: Text(category),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected ? Colors.black : Colors.white,
-                    foregroundColor: isSelected ? Colors.white : Colors.black,
-                    elevation: 0,
-                    side: BorderSide(
-                      color: isSelected ? Colors.black : Colors.grey.shade300,
-                      width: 1,
-                    ),
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    textStyle: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '자격증 유형',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
-                );
-              }).toList(),
+                ),
+                SizedBox(height: 8),
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: categories.map((category) {
+                      bool isSelected = selectedCategory == category;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedCategory = category;
+                            });
+                            _loadExamNames(category);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isSelected ? Colors.black : Colors.white,
+                            foregroundColor: isSelected ? Colors.white : Colors.black,
+                            elevation: 0,
+                            side: BorderSide(
+                              color: isSelected ? Colors.black : Colors.grey.shade300,
+                              width: 1,
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                            minimumSize: Size(0, 36),
+                          ),
+                          child: Text(
+                            category,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // 검색창
+          // 검색창 - 마진 축소
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
                 hintText: '자격증 검색',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: Icon(Icons.search, size: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 filled: true,
                 fillColor: Colors.grey.shade50,
+                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                isDense: true,
               ),
               onSubmitted: (value) {
                 print('검색어: $value');
@@ -234,49 +232,30 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 중간 광고 영역 (AdSense 승인 후 활성화)
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-            height: 90,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey.shade50,
-            ),
-            child: Center(
-              child: Text(
-                'Advertisement',
-                style: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-
-          // 시험 목록 섹션 타이틀
+          // 시험 목록 섹션 타이틀 - 마진 축소
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
                 Text(
                   '$selectedCategory 자격증',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${examNames.length}개',
                     style: TextStyle(
+                      fontSize: 12,
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
                     ),
@@ -286,7 +265,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 시험 목록 표 형태
+          // 시험 목록 - Expanded로 변경하여 남은 공간 모두 사용
           Expanded(
             child: isLoading
                 ? Center(
@@ -303,7 +282,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       )
                     : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade200),
@@ -318,32 +297,45 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.grey.shade200,
                               ),
                               itemBuilder: (context, index) {
-                                // 4개 항목마다 인라인 광고 표시 (AdSense 승인 후 활성화)
-                                if (index > 0 && index % 4 == 0) {
-                                  return Column(
-                                    children: [
-                                      Container(
-                                        margin: EdgeInsets.symmetric(vertical: 8),
-                                        height: 70,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.grey.shade200),
-                                          color: Colors.grey.shade50,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            'Advertisement',
-                                            style: TextStyle(
-                                              color: Colors.grey.shade400,
-                                              fontSize: 14,
-                                            ),
-                                          ),
+                                return ListTile(
+                                  title: Text(
+                                    examNames[index],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    selectedCategory,
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                  leading: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.description_outlined,
+                                      color: Colors.blue.shade700,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  trailing: Icon(Icons.arrow_forward_ios, size: 14),
+                                  dense: true,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => QuestionTypeSelect(
+                                          examName: examNames[index],
                                         ),
                                       ),
-                                      _buildExamListItem(index),
-                                    ],
-                                  );
-                                }
-                                return _buildExamListItem(index);
+                                    );
+                                  },
+                                );
                               },
                             ),
                           ),
@@ -352,9 +344,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      // 하단 저작권 및 개인정보 링크 정보
+      // 하단 저작권 정보는 유지하되 작게 조정
       bottomNavigationBar: Container(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 32),
+        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         color: Colors.grey.shade100,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -363,7 +355,7 @@ class _HomePageState extends State<HomePage> {
               '© 2025 우주도서관 SPACE',
               style: TextStyle(
                 color: Colors.grey[600],
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
             InkWell(
@@ -379,50 +371,13 @@ class _HomePageState extends State<HomePage> {
                 '개인정보처리방침',
                 style: TextStyle(
                   color: Colors.blue[600],
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // 시험 목록 아이템 위젯
-  Widget _buildExamListItem(int index) {
-    return ListTile(
-      title: Text(
-        examNames[index],
-        style: TextStyle(
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(selectedCategory),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          Icons.description_outlined,
-          color: Colors.blue.shade700,
-        ),
-      ),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => QuestionTypeSelect(
-              examName: examNames[index],
-            ),
-          ),
-        );
-      },
     );
   }
 
