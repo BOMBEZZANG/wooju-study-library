@@ -1,8 +1,10 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 import 'Question_type_Select.dart';
 import 'PrivacyPolicyScreen.dart';
+import 'AdBanner.dart'; // AdBanner 위젯 import
 
 class HomePage extends StatefulWidget {
   @override
@@ -25,6 +27,10 @@ class _HomePageState extends State<HomePage> {
   TextEditingController searchController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool isLoading = true;
+
+  // 사용자로부터 받은 실제 AdSense 정보
+  final String userAdUnitId = "1372504723"; // 실제 광고 단위 ID
+  final String userPublisherId = "2598779635969436"; // 실제 게시자 ID (ca-pub- 제외)
 
   @override
   void initState() {
@@ -69,6 +75,20 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Analytics 이벤트 로깅 함수
+void _logSelectCategory(String category) async {
+  try {
+    await FirebaseAnalytics.instance.logSelectContent(
+      contentType: 'category',
+      itemId: category,
+    );
+    print('Firebase Analytics: 카테고리 선택 이벤트 로깅 완료 - $category');
+  } catch (e) {
+    print('Firebase Analytics 이벤트 로깅 오류: $e');
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,11 +126,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      // SingleChildScrollView를 body에 직접 사용하지 않고 내부 레이아웃 수정
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 히어로 섹션 - 높이 축소
+          // 히어로 섹션
           Container(
             width: double.infinity,
             color: Colors.black,
@@ -124,27 +143,17 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 상단 광고 영역 - 높이 축소
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            height: 60, // 높이 축소
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey.shade50,
-            ),
-            child: Center(
-              child: Text(
-                'Advertisement',
-                style: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: 12,
-                ),
-              ),
+          // 상단 광고 영역 - AdBanner 위젯으로 교체 및 실제 ID 전달
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: AdBanner(
+              height: 100, // 원하는 광고 높이
+              adUnitId: userAdUnitId,       // 실제 광고 단위 ID 전달
+              publisherId: userPublisherId, // 실제 게시자 ID 전달 (ca-pub- 제외)
             ),
           ),
 
-          // 카테고리 필터 - 컴팩트하게 수정
+          // 카테고리 필터
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Column(
@@ -173,6 +182,8 @@ class _HomePageState extends State<HomePage> {
                               selectedCategory = category;
                             });
                             _loadExamNames(category);
+                              _logSelectCategory(category); // 이 줄 추가
+
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isSelected ? Colors.black : Colors.white,
@@ -201,7 +212,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 검색창 - 마진 축소
+          // 검색창
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
@@ -232,7 +243,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 시험 목록 섹션 타이틀 - 마진 축소
+          // 시험 목록 섹션 타이틀
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
@@ -265,11 +276,14 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 시험 목록 - Expanded로 변경하여 남은 공간 모두 사용
+          // 시험 목록
           Expanded(
             child: isLoading
                 ? Center(
-                    child: CircularProgressIndicator(),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                      strokeWidth: 2,
+                    ),
                   )
                 : examNames.isEmpty
                     ? Center(
@@ -344,7 +358,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      // 하단 저작권 정보는 유지하되 작게 조정
+      // 하단 저작권 정보
       bottomNavigationBar: Container(
         padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         color: Colors.grey.shade100,

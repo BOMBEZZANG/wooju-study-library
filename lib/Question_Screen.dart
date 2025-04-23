@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'AdBanner.dart'; // AdBanner 위젯 import
 
 class QuestionScreen extends StatefulWidget {
   final String examName;
@@ -15,11 +16,15 @@ class QuestionScreen extends StatefulWidget {
 class _QuestionScreenState extends State<QuestionScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Map<String, GlobalKey<_QuestionCardState>> _questionKeys = {};
-  
+
   // 데이터 로딩 상태를 관리하기 위한 변수들
   bool isLoading = true;
   List<QueryDocumentSnapshot> questions = [];
   String errorMessage = '';
+
+  // 사용자 AdSense 정보 (home.dart와 동일하게 사용)
+  final String userAdUnitId = "1372504723"; // 실제 광고 단위 ID
+  final String userPublisherId = "2598779635969436"; // 실제 게시자 ID (ca-pub- 제외)
 
   @override
   void initState() {
@@ -38,10 +43,10 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-      
+
       // Year 필드 값 로그 출력
       print('시험: ${widget.examName}, 검색할 연도: ${widget.year}');
-      
+
       // 쿼리 실행
       final QuerySnapshot snapshot = await _firestore
           .collection('exams')
@@ -50,9 +55,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
           .where('Year', isEqualTo: widget.year)
           .orderBy('Question_id')
           .get();
-      
+
       print('쿼리 결과: ${snapshot.docs.length}개의 문제 로드됨');
-      
+
       // 첫 번째 문서의 Year 필드 값 확인 (결과가 있는 경우)
       if (snapshot.docs.isNotEmpty) {
         var firstDoc = snapshot.docs.first.data() as Map<String, dynamic>;
@@ -104,7 +109,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
                 }
               });
               Navigator.pop(context);
-              
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('모든 문제가 초기화되었습니다'),
@@ -163,7 +168,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
           // 상단 정보 표시
           Container(
             color: Colors.black,
-  padding: EdgeInsets.fromLTRB(32, 0, 32, 16), // 패딩 줄이기 (기존 32에서 16으로)
+            width: double.infinity, // 너비 최대로 설정
+            padding: EdgeInsets.fromLTRB(32, 0, 32, 16), // 패딩 설정
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -217,9 +223,19 @@ class _QuestionScreenState extends State<QuestionScreen> {
             ),
           ),
 
+          // 광고 배너 추가
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: AdBanner(
+              height: 100, // 원하는 광고 높이
+              adUnitId: userAdUnitId,       // 실제 광고 단위 ID 전달
+              publisherId: userPublisherId, // 실제 게시자 ID 전달 (ca-pub- 제외)
+            ),
+          ),
+
           // 문제 컨텐츠 - 스크롤 다운 형태로 모든 문제 표시
           Expanded(
-            child: isLoading 
+            child: isLoading
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -289,7 +305,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
                         ),
                       )
                     : SingleChildScrollView(
-                        padding: EdgeInsets.all(32),
+                        padding: EdgeInsets.fromLTRB(32, 16, 32, 32), // 상단 패딩 조정
                         child: Column(
                           children: [
                             // 문제 개요 정보
@@ -331,7 +347,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
                                 ],
                               ),
                             ),
-                            
+
                             // 모든 문제 표시
                             ...questions.map((doc) {
                               final docId = doc.id;
@@ -416,7 +432,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
   }
 }
 
-// 개별 문제 카드 위젯
+// 개별 문제 카드 위젯 (QuestionCard)
 class QuestionCard extends StatefulWidget {
   final QueryDocumentSnapshot doc;
 
@@ -507,7 +523,7 @@ class _QuestionCardState extends State<QuestionCard> {
       return buildImage(option, isOption: true);
     } else {
       String displayText = option;
-      
+
       return Text(
         displayText,
         style: TextStyle(
@@ -524,7 +540,7 @@ class _QuestionCardState extends State<QuestionCard> {
     int correctOption = data['Correct_Option'] ?? 0;
     String category = data['Category'] ?? '';
     String year = data['Year'] ?? '';
-    
+
     // 옵션 개수 확인 (Option5가 있는지 체크)
     int optionCount = 4; // 기본 옵션 개수
     if (data.containsKey('Option5') && data['Option5'] != null) {
@@ -604,7 +620,7 @@ class _QuestionCardState extends State<QuestionCard> {
               ],
             ),
           ),
-          
+
           // 문제 내용 섹션
           Padding(
             padding: const EdgeInsets.all(20.0),
@@ -624,11 +640,11 @@ class _QuestionCardState extends State<QuestionCard> {
                       ),
                     ),
                   ),
-                
+
                 // 문제 내용
                 buildQuestion(data['Question']),
                 SizedBox(height: 24),
-                
+
                 // 선택지
                 Column(
                   children: List.generate(optionCount, (optionIndex) {
@@ -769,7 +785,7 @@ class _QuestionCardState extends State<QuestionCard> {
                     );
                   }),
                 ),
-                
+
                 // 해설
                 if (showExplanation && userChoice != null && data.containsKey('Answer_description') && data['Answer_description'] != null) ...[
                   SizedBox(height: 20),
