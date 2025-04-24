@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 import 'Question_type_Select.dart';
 import 'PrivacyPolicyScreen.dart';
-import 'AdBanner.dart'; // AdBanner 위젯 import
 
 class HomePage extends StatefulWidget {
   @override
@@ -27,10 +26,6 @@ class _HomePageState extends State<HomePage> {
   TextEditingController searchController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool isLoading = true;
-
-  // 사용자로부터 받은 실제 AdSense 정보
-  final String userAdUnitId = "1372504723"; // 실제 광고 단위 ID
-  final String userPublisherId = "2598779635969436"; // 실제 게시자 ID (ca-pub- 제외)
 
   @override
   void initState() {
@@ -76,17 +71,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Analytics 이벤트 로깅 함수
-void _logSelectCategory(String category) async {
-  try {
-    await FirebaseAnalytics.instance.logSelectContent(
-      contentType: 'category',
-      itemId: category,
-    );
-    print('Firebase Analytics: 카테고리 선택 이벤트 로깅 완료 - $category');
-  } catch (e) {
-    print('Firebase Analytics 이벤트 로깅 오류: $e');
+  void _logSelectCategory(String category) async {
+    try {
+      await FirebaseAnalytics.instance.logSelectContent(
+        contentType: 'category',
+        itemId: category,
+      );
+      print('Firebase Analytics: 카테고리 선택 이벤트 로깅 완료 - $category');
+    } catch (e) {
+      print('Firebase Analytics 이벤트 로깅 오류: $e');
+    }
   }
-}
 
 
   @override
@@ -143,19 +138,9 @@ void _logSelectCategory(String category) async {
             ),
           ),
 
-          // 상단 광고 영역 - AdBanner 위젯으로 교체 및 실제 ID 전달
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: AdBanner(
-              height: 100, // 원하는 광고 높이
-              adUnitId: userAdUnitId,       // 실제 광고 단위 ID 전달
-              publisherId: userPublisherId, // 실제 게시자 ID 전달 (ca-pub- 제외)
-            ),
-          ),
-
           // 카테고리 필터
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

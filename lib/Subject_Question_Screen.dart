@@ -25,10 +25,19 @@ class _SubjectQuestionScreenState extends State<SubjectQuestionScreen> {
   String? selectedYear;
   String errorMessage = '';
 
+  // 스크롤 컨트롤러 추가
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _loadYearsAndQuestions();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // 스크롤 컨트롤러 해제
+    super.dispose();
   }
 
   // 연도 목록과 문제 데이터 로드
@@ -40,27 +49,29 @@ class _SubjectQuestionScreenState extends State<SubjectQuestionScreen> {
 
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-      
+
       // 1. 시험 문서에서 years 배열 가져오기
-      DocumentSnapshot examDoc = await _firestore.collection('exams').doc(widget.examName).get();
-      
+      DocumentSnapshot examDoc =
+          await _firestore.collection('exams').doc(widget.examName).get();
+
       if (examDoc.exists && examDoc.data() != null) {
         Map<String, dynamic> data = examDoc.data() as Map<String, dynamic>;
         List<dynamic> yearList = data['years'] ?? [];
-        
+
         if (yearList.isNotEmpty) {
           // 연도 목록 정렬 (내림차순 - 최신 연도가 먼저 오도록)
-          List<String> sortedYears = yearList.map((year) => year.toString()).toList();
+          List<String> sortedYears =
+              yearList.map((year) => year.toString()).toList();
           sortedYears.sort((a, b) => b.compareTo(a)); // 내림차순 정렬
-          
+
           // 가장 최신 연도를 기본값으로 설정
           String latestYear = sortedYears.first;
-          
+
           setState(() {
             years = sortedYears;
             selectedYear = latestYear;
           });
-          
+
           // 선택된 연도로 문제 로드
           await _loadQuestions(latestYear);
         } else {
@@ -88,22 +99,23 @@ class _SubjectQuestionScreenState extends State<SubjectQuestionScreen> {
   Future<void> _loadQuestions(String year) async {
     setState(() {
       isLoading = true;
-      questions = [];
+      questions = []; // 문제 목록 초기화
     });
 
     try {
       final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-      print('로드 시도: exam=${widget.examName}, subject=${widget.subjectName}, year=$year');
+      print(
+          '로드 시도: exam=${widget.examName}, subject=${widget.subjectName}, year=$year');
 
-      // 새 구조에서는 questions 컬렉션에서 Category와 Year 필드로 필터링
+      // questions 컬렉션에서 Category와 Year 필드로 필터링
       final QuerySnapshot snapshot = await _firestore
           .collection('exams')
           .doc(widget.examName)
           .collection('questions')
           .where('Category', isEqualTo: widget.subjectName)
           .where('Year', isEqualTo: year)
-          .orderBy('Question_id')
+          .orderBy('Question_id') // Question_id 순으로 정렬
           .get();
 
       print('쿼리 결과: ${snapshot.docs.length}개의 문제 로드됨');
@@ -119,6 +131,7 @@ class _SubjectQuestionScreenState extends State<SubjectQuestionScreen> {
         isLoading = false;
       });
 
+      // 오류 발생 시 사용자에게 알림
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('문제를 불러오는 중 오류가 발생했습니다: $e'),
@@ -156,11 +169,13 @@ class _SubjectQuestionScreenState extends State<SubjectQuestionScreen> {
             onPressed: () {
               _questionKeys.forEach((_, key) {
                 if (key.currentState != null) {
+                  // 각 QuestionCard의 상태 초기화 메서드 호출
                   key.currentState!.resetQuestion();
                 }
               });
-              Navigator.pop(context);
+              Navigator.pop(context); // 다이얼로그 닫기
 
+              // 초기화 완료 메시지 표시
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('모든 문제가 초기화되었습니다'),
@@ -171,294 +186,15 @@ class _SubjectQuestionScreenState extends State<SubjectQuestionScreen> {
               );
             },
           ),
-        ],
+        ], // actions 닫는 괄호
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-      ),
-    );
+      ), // AlertDialog 닫는 괄호
+    ); // showDialog 닫는 괄호
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.black,
-        centerTitle: false,
-        // title: Text(
-        //   widget.subjectName,
-        //   style: TextStyle(
-        //     color: Colors.white,
-        //     fontWeight: FontWeight.w400,
-        //     fontSize: 20,
-        //   ),
-        // ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white),
-            onPressed: _resetAllQuestions,
-            tooltip: '모든 문제 초기화',
-          ),
-          IconButton(
-            icon: Icon(Icons.info_outline, color: Colors.white),
-            onPressed: () {
-              _showInfoDialog(context, widget.examName, widget.subjectName);
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 상단 정보 표시
-          Container(
-            color: Colors.black,
-            padding: EdgeInsets.fromLTRB(32, 0, 32, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  widget.subjectName,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                
-                // 연도 선택 드롭다운
-                // 연도 선택 드롭다운
-if (years.isNotEmpty) ...[
-  Row(
-    children: [
-      Icon(
-        Icons.calendar_today,
-        color: Colors.white,
-        size: 18,
-      ),
-      SizedBox(width: 8),
-      Text(
-        '연도 선택:',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    ],
-  ),
-  SizedBox(height: 8),
-  Container(
-    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.white),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.1),
-          blurRadius: 4,
-          offset: Offset(0, 2),
-        ),
-      ],
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: selectedYear,
-        isExpanded: true,
-        dropdownColor: Colors.white,
-        icon: Icon(Icons.keyboard_arrow_down, color: Colors.black),
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        items: years.map((String year) {
-          return DropdownMenuItem<String>(
-            value: year,
-            child: Text(year),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          if (newValue != null && newValue != selectedYear) {
-            setState(() {
-              selectedYear = newValue;
-            });
-            _loadQuestions(newValue);
-          }
-        },
-      ),
-    ),
-  ),
-],
-              ],
-            ),
-          ),
-
-          // 문제 컨텐츠
-          Expanded(
-            child: isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          '문제를 불러오는 중입니다...',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : questions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              selectedYear != null 
-                                  ? '$selectedYear 연도에 해당 과목의 문제가 없습니다'
-                                  : '해당 과목의 문제가 없습니다',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (errorMessage.isNotEmpty) ...[
-                              SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 32),
-                                child: Text(
-                                  errorMessage,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.red[400],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                            SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                if (selectedYear != null) {
-                                  _loadQuestions(selectedYear!);
-                                } else {
-                                  _loadYearsAndQuestions();
-                                }
-                              },
-                              icon: Icon(Icons.refresh),
-                              label: Text('다시 시도'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            // 문제 개요 정보
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(16),
-                              margin: EdgeInsets.only(bottom: 24),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.blue.shade600,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 16),
-                                  Expanded(
-                                    child: Text(
-                                      '${widget.subjectName} (${selectedYear}) - ${questions.length}문항',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: _resetAllQuestions,
-                                    icon: Icon(Icons.refresh, size: 16),
-                                    label: Text('초기화'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.black,
-                                      padding: EdgeInsets.symmetric(horizontal: 8),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            
-                            // 모든 문제 표시
-                            ...questions.map((doc) {
-                              final docId = doc.id;
-                              if (!_questionKeys.containsKey(docId)) {
-                                _questionKeys[docId] = GlobalKey<_QuestionCardState>();
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 32.0),
-                                child: QuestionCard(
-                                  key: _questionKeys[docId],
-                                  doc: doc,
-                                ),
-                              );
-                            }).toList(),
-                          ],
-                        ),
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // 학습 정보 다이얼로그 표시
   void _showInfoDialog(BuildContext context, String examName, String subjectName) {
     showDialog(
       context: context,
@@ -534,13 +270,321 @@ if (years.isNotEmpty) ...[
       ),
     );
   }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.black,
+        centerTitle: false,
+        toolbarHeight: 40, // 앱바 높이 축소
+        title: Text(
+          widget.subjectName, // 과목 이름 표시
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w400,
+            fontSize: 16,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 18),
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.white, size: 18),
+            padding: EdgeInsets.zero,
+            onPressed: _resetAllQuestions,
+            tooltip: '모든 문제 초기화',
+          ),
+          IconButton(
+            icon: Icon(Icons.info_outline, color: Colors.white, size: 18),
+            padding: EdgeInsets.zero,
+            onPressed: () {
+              _showInfoDialog(context, widget.examName, widget.subjectName);
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 상단 연도 선택 영역
+          Container(
+            color: Colors.black,
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8), // 패딩 조절
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 연도 선택 드롭다운
+                if (years.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        color: Colors.white,
+                        size: 14, // 아이콘 크기 조절
+                      ),
+                      SizedBox(width: 6), // 간격 조절
+                      Text(
+                        '연도 선택:',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14, // 폰트 크기 조절
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4), // 간격 조절
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0), // 내부 패딩 조절
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedYear,
+                        isExpanded: true,
+                        dropdownColor: Colors.white,
+                        icon: Icon(Icons.keyboard_arrow_down,
+                            color: Colors.black, size: 20), // 아이콘 크기 조절
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14, // 폰트 크기 조절
+                          fontWeight: FontWeight.w500,
+                        ),
+                        items: years.map((String year) {
+                          return DropdownMenuItem<String>(
+                            value: year,
+                            child: Text(year),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null && newValue != selectedYear) {
+                            setState(() {
+                              selectedYear = newValue;
+                            });
+                            _loadQuestions(newValue); // 새 연도 선택 시 문제 로드
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // 문제 컨텐츠 영역
+          Expanded(
+            child: isLoading
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '문제를 불러오는 중입니다...',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : questions.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              selectedYear != null
+                                  ? '$selectedYear 연도에 해당 과목의 문제가 없습니다'
+                                  : '해당 과목의 문제가 없습니다',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (errorMessage.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 32),
+                                child: Text(
+                                  errorMessage,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.red[400],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                            SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                if (selectedYear != null) {
+                                  _loadQuestions(selectedYear!);
+                                } else {
+                                  // 연도 정보가 없을 때 초기 로드 함수 재호출
+                                  _loadYearsAndQuestions();
+                                }
+                              },
+                              icon: Icon(Icons.refresh),
+                              label: Text('다시 시도'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8), // 패딩 적용
+                        child: _buildGridView(), // 그리드 뷰 표시
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 2단 그리드 뷰 생성 (ListView & Row 사용)
+  Widget _buildGridView() {
+    int questionCount = questions.length;
+
+    return Column(
+      children: [
+        // 간략한 요약 정보
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          margin: EdgeInsets.only(bottom: 4),
+          child: Text(
+            '총 ${questionCount}문항', // 동적으로 문제 개수 표시
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+
+        // ListView 사용하여 Row로 2개씩 배치
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            itemCount: (questionCount / 2).ceil(), // 2개씩 묶어서 표시할 행 수 계산
+            cacheExtent: 500, // 스크롤 성능 개선을 위한 캐시 범위 설정
+            itemBuilder: (context, rowIndex) {
+              final leftIndex = rowIndex * 2;
+              final rightIndex = rowIndex * 2 + 1;
+
+              return Padding(
+                padding: EdgeInsets.only(bottom: 6.0), // 행 간격
+                child: IntrinsicHeight( // Row 내부 위젯들의 높이를 가장 큰 위젯에 맞춤
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start, // 카드 상단 정렬
+                    children: [
+                      // 왼쪽 카드
+                      Expanded(
+                        child: leftIndex < questionCount
+                            ? _buildSafeQuestionCard(leftIndex)
+                            : SizedBox(), // 왼쪽 아이템이 없으면 빈 공간
+                      ),
+                      SizedBox(width: 6.0), // 열 간격
+                      // 오른쪽 카드
+                      Expanded(
+                        child: rightIndex < questionCount
+                            ? _buildSafeQuestionCard(rightIndex)
+                            : SizedBox(), // 오른쪽 아이템이 없으면 빈 공간
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 안전하게 QuestionCard 위젯 생성 (오류 처리 포함)
+  Widget _buildSafeQuestionCard(int index) {
+    try {
+      final doc = questions[index]; // 해당 인덱스의 문서 가져오기
+      if (doc == null) {
+        print('Error: Document is null at index $index');
+        return SizedBox(); // 문서 없으면 빈 위젯
+      }
+
+      final docId = doc.id;
+      if (docId == null || docId.isEmpty) {
+        print('Error: Document ID is null or empty at index $index');
+        return SizedBox(); // ID 없으면 빈 위젯
+      }
+
+      // GlobalKey 관리
+      if (!_questionKeys.containsKey(docId)) {
+        _questionKeys[docId] = GlobalKey<_QuestionCardState>();
+      }
+
+      // QuestionCard 위젯 반환
+      return QuestionCard(
+        key: _questionKeys[docId],
+        doc: doc,
+        isCompact: true, // 컴팩트 모드 활성화
+      );
+    } catch (e, stackTrace) {
+      print('Error building QuestionCard at index $index: $e');
+      print(stackTrace);
+      return SizedBox(); // 오류 발생 시 빈 위젯 반환
+    }
+  }
 }
 
-// 개별 문제 카드 위젯
+
+//-------------------------------------------------------------------
+// 개별 문제 카드 위젯 (QuestionCard)
+//-------------------------------------------------------------------
 class QuestionCard extends StatefulWidget {
   final QueryDocumentSnapshot doc;
+  final bool isCompact; // 컴팩트 모드 여부
 
-  QuestionCard({Key? key, required this.doc}) : super(key: key);
+  QuestionCard({
+    Key? key,
+    required this.doc,
+    this.isCompact = false,
+  }) : super(key: key);
 
   @override
   _QuestionCardState createState() => _QuestionCardState();
@@ -552,10 +596,12 @@ class _QuestionCardState extends State<QuestionCard> {
 
   // 문제 초기화 메서드
   void resetQuestion() {
-    setState(() {
-      userChoice = null;
-      showExplanation = false;
-    });
+    if (mounted) { // 위젯이 마운트된 상태인지 확인
+      setState(() {
+        userChoice = null;
+        showExplanation = false;
+      });
+    }
   }
 
   // Base64 이미지인지 확인
@@ -563,49 +609,54 @@ class _QuestionCardState extends State<QuestionCard> {
     return data != null && data.startsWith('data:image');
   }
 
-  // Base64 데이터를 이미지로 변환
+  // Base64 데이터를 이미지 위젯으로 변환
   Widget buildImage(String base64String, {bool isOption = false}) {
     try {
       final bytes = base64Decode(base64String.split(',').last);
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8), // 이미지 모서리 둥글게
         child: Image.memory(
           bytes,
-          fit: BoxFit.contain,
-          width: isOption ? 200 : double.infinity,
-          height: isOption ? 120 : 250,
+          fit: BoxFit.contain, // 이미지 비율 유지하며 채우기
+          width: isOption ? 120 : double.infinity, // 옵션 이미지 크기 조절
+          height: isOption ? 80 : 160, // 높이 조절
+          errorBuilder: (context, error, stackTrace) { // 이미지 로딩 오류 시 처리
+            return Center(child: Text('이미지 로딩 실패', style: TextStyle(fontSize: 10)));
+          },
         ),
       );
     } catch (e) {
+      print('Base64 이미지 디코딩 오류: $e');
       return Center(
         child: Text(
-          '이미지를 표시할 수 없습니다',
-          style: TextStyle(color: Colors.red.shade400),
+          '이미지 오류',
+          style: TextStyle(color: Colors.red.shade400, fontSize: 12),
         ),
       );
     }
   }
 
-  // Question 위젯 생성
+  // 문제 텍스트 또는 이미지 위젯 생성
   Widget buildQuestion(String? question) {
-    if (question == null) {
-      return SizedBox.shrink();
+    if (question == null || question.trim().isEmpty) {
+      return SizedBox.shrink(); // 내용 없으면 빈 위젯
     } else if (isBase64Image(question)) {
-      return buildImage(question, isOption: false);
+      return buildImage(question, isOption: false); // 이미지 표시
     } else {
+      // 텍스트 문제 표시
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.all(24),
+        padding: EdgeInsets.all(widget.isCompact ? 10 : 16), // 컴팩트 모드 패딩 조절
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          color: Colors.grey.shade50, // 배경색
+          borderRadius: BorderRadius.circular(8), // 모서리 둥글게
+          border: Border.all(color: Colors.grey.shade200), // 테두리
         ),
         child: Text(
           question,
           style: TextStyle(
-            fontSize: 18,
-            height: 1.5,
+            fontSize: widget.isCompact ? 13 : 16, // 컴팩트 모드 폰트 크기 조절
+            height: 1.4, // 줄 간격
             color: Colors.black87,
           ),
         ),
@@ -613,7 +664,7 @@ class _QuestionCardState extends State<QuestionCard> {
     }
   }
 
-  // Option 위젯 생성
+  // 선택지 텍스트 또는 이미지 위젯 생성
   Widget buildOption(String? option, bool isSelected, bool isCorrect, bool hasSelected) {
     if (option == null) {
       return Text(
@@ -621,136 +672,161 @@ class _QuestionCardState extends State<QuestionCard> {
         style: TextStyle(
           color: Colors.grey.shade500,
           fontStyle: FontStyle.italic,
+          fontSize: widget.isCompact ? 11 : 13, // 컴팩트 모드 폰트 크기 조절
         ),
       );
     } else if (isBase64Image(option)) {
-      return buildImage(option, isOption: true);
+      return buildImage(option, isOption: true); // 이미지 옵션
     } else {
+      // 텍스트 옵션
       String displayText = option;
-      
+      Color textColor = Colors.black87; // 기본 텍스트 색상
+
+      // 선택 후 상태에 따른 스타일 변경 (컴팩트 모드에서는 아이콘으로 대체)
+      if (hasSelected && !widget.isCompact) {
+         if (isSelected) {
+           textColor = isCorrect ? Colors.green.shade700 : Colors.red.shade700;
+         } else if (isCorrect) {
+           textColor = Colors.green.shade700; // 정답 옵션 강조
+         }
+      }
+
       return Text(
         displayText,
         style: TextStyle(
-          fontSize: 16,
-          color: Colors.black87,
+          fontSize: widget.isCompact ? 12 : 14, // 컴팩트 모드 폰트 크기 조절
+          color: textColor,
         ),
+        maxLines: widget.isCompact ? 3 : null, // 컴팩트 모드 줄 수 제한
+        overflow: widget.isCompact ? TextOverflow.ellipsis : TextOverflow.visible, // 넘칠 경우 ... 처리
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    var data = widget.doc.data() as Map<String, dynamic>;
-    int correctOption = data['Correct_Option'] ?? 0;
-    String category = data['Category'] ?? '';
-    String year = data['Year'] ?? '';
-    
-    // 옵션 개수 확인 (Option5가 있는지 체크)
-    int optionCount = 4; // 기본 옵션 개수
-    if (data.containsKey('Option5') && data['Option5'] != null) {
-      optionCount = 5; // Option5가 존재하면 5개로 설정
+    // 데이터 추출 및 null 처리 강화
+    final data = widget.doc.data() as Map<String, dynamic>? ?? {};
+    final int correctOption = data['Correct_Option'] as int? ?? 0;
+    // final String category = data['Category'] as String? ?? ''; // 현재 사용 안 함
+
+    // 옵션 개수 동적 확인
+    int optionCount = 4; // 기본 4개
+    for (int i = 5; i <= 10; i++) { // 최대 10개 옵션까지 확인 (필요시 조절)
+      if (data.containsKey('Option$i') && data['Option$i'] != null && data['Option$i'].toString().isNotEmpty) {
+        optionCount = i;
+      } else {
+        break; // 연속되지 않으면 중단
+      }
     }
+
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200), // 카드 테두리
         color: Colors.white,
-        boxShadow: [
+        boxShadow: [ // 약간의 그림자 효과
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            blurRadius: 5,
+            offset: Offset(0, 1),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Column 높이를 내용에 맞춤
         children: [
-          // 문제 헤더 섹션
+          // 문제 헤더 (문제 번호, 초기화 버튼)
           Container(
-            padding: EdgeInsets.all(20),
+            padding: EdgeInsets.all(widget.isCompact ? 8 : 12), // 컴팩트 모드 패딩 조절
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: Colors.grey.shade50, // 헤더 배경색
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
               ),
             ),
             child: Row(
               children: [
+                // 문제 번호 표시
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.isCompact ? 8 : 10,
+                    vertical: widget.isCompact ? 3 : 5
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.black, // 배경색
+                    borderRadius: BorderRadius.circular(12), // 둥근 모서리
                   ),
                   child: Text(
-                    'Q${data['Question_id']}',
+                    '${data['Question_id'] ?? '?'}', // null 처리
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: widget.isCompact ? 11 : 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
-                if (category.isNotEmpty)
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      category,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                Spacer(),
+                Spacer(), // 오른쪽으로 밀기
+                // 초기화 버튼 (선택했을 때만 표시)
                 if (userChoice != null)
                   TextButton.icon(
                     onPressed: resetQuestion,
-                    icon: Icon(Icons.refresh, size: 16),
-                    label: Text('초기화'),
+                    icon: Icon(Icons.refresh, size: widget.isCompact ? 12 : 16),
+                    label: Text(
+                      '초기화',
+                      style: TextStyle(fontSize: widget.isCompact ? 10 : 12),
+                    ),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      foregroundColor: Colors.black54,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: widget.isCompact ? 4 : 6,
+                        vertical: widget.isCompact ? 0 : 2
+                      ),
+                      minimumSize: Size(0, 0), // 버튼 최소 크기 제거
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap, // 탭 영역 축소
                     ),
                   ),
               ],
             ),
           ),
-          
-          // 문제 내용 섹션
-          Padding(
-            padding: const EdgeInsets.all(20.0),
+
+          // 문제 내용 섹션 (스크롤 가능)
+          // Flexible을 사용하여 남은 공간을 차지하도록 함
+          Padding( // 내부 패딩을 Column 밖으로 이동
+            padding: EdgeInsets.all(widget.isCompact ? 8 : 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // Column 높이를 내용에 맞춤
               children: [
-                // 문제 제목
-                if (data.containsKey('Big_Question') && data['Big_Question'] != null)
-                  Container(
-                    margin: EdgeInsets.only(bottom: 16),
+                // Big Question (메인 질문)
+                if (data.containsKey('Big_Question') && data['Big_Question'] != null && data['Big_Question'].toString().isNotEmpty)
+                  Padding( // Big Question 위아래 간격 조정
+                    padding: EdgeInsets.only(bottom: widget.isCompact ? 8 : 12),
                     child: Text(
                       data['Big_Question'],
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontSize: widget.isCompact ? 14 : 17, // 폰트 크기 조절
+                        fontWeight: FontWeight.w600, // 약간 굵게
                         color: Colors.black,
                       ),
                     ),
                   ),
-                
-                // 문제 내용
-                buildQuestion(data['Question']),
-                SizedBox(height: 24),
-                
-                // 선택지
+
+                // 부가 질문 (Question 필드)
+                if (data.containsKey('Question') && data['Question'] != null && data['Question'].toString().trim().isNotEmpty)
+                  Padding( // 부가 질문 아래 간격
+                    padding: EdgeInsets.only(bottom: widget.isCompact ? 8 : 12),
+                    child: buildQuestion(data['Question']),
+                  ),
+
+                SizedBox(height: widget.isCompact ? 6 : 10), // 질문과 선택지 사이 간격
+
+                // 선택지 목록
                 Column(
+                  mainAxisSize: MainAxisSize.min, // Column 높이를 내용에 맞춤
                   children: List.generate(optionCount, (optionIndex) {
                     int optionNumber = optionIndex + 1;
                     String? optionText = data['Option$optionNumber'];
@@ -759,86 +835,82 @@ class _QuestionCardState extends State<QuestionCard> {
 
                     return InkWell(
                       onTap: () {
-                        if (userChoice == null) {
+                        if (userChoice == null && mounted) { // 선택 전이고 마운트 상태일 때만
                           setState(() {
                             userChoice = optionNumber;
                             showExplanation = true;
                           });
                         }
                       },
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8), // 탭 효과 범위
                       child: Container(
-                        margin: EdgeInsets.only(bottom: 16),
-                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        margin: EdgeInsets.only(bottom: widget.isCompact ? 5 : 8), // 선택지 간 간격
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.isCompact ? 10 : 12,
+                          vertical: widget.isCompact ? 8 : 10
+                        ),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all( // 선택 상태에 따른 테두리 스타일
                             color: userChoice != null
                                 ? isSelected
                                     ? isCorrect
                                         ? Colors.green.shade300
                                         : Colors.red.shade300
                                     : isCorrect
-                                        ? Colors.green.shade300
+                                        ? Colors.green.shade300 // 정답 강조
                                         : Colors.grey.shade200
-                                : Colors.grey.shade200,
-                            width: 1.5,
+                                : Colors.grey.shade200, // 기본 테두리
+                            width: 1.5, // 테두리 두께
                           ),
-                          color: userChoice != null
+                          color: userChoice != null // 선택 상태에 따른 배경색
                               ? isSelected
                                   ? isCorrect
                                       ? Colors.green.shade50
                                       : Colors.red.shade50
                                   : isCorrect
-                                      ? Colors.green.shade50
+                                      ? Colors.green.shade50 // 정답 배경 강조
                                       : Colors.white
-                              : Colors.white,
+                              : Colors.white, // 기본 배경색
                         ),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start, // 아이콘과 텍스트 상단 정렬
                           children: [
+                            // 선택지 번호 동그라미
                             Container(
-                              width: 32,
-                              height: 32,
-                              margin: EdgeInsets.only(right: 16, top: 2),
+                              width: widget.isCompact ? 20 : 24,
+                              height: widget.isCompact ? 20 : 24,
+                              margin: EdgeInsets.only(
+                                right: widget.isCompact ? 8 : 10,
+                                top: 1 // 텍스트와 높이 미세 조정
+                              ),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: userChoice != null
+                                color: userChoice != null // 선택 상태에 따른 동그라미 색상
                                     ? isSelected
                                         ? isCorrect
-                                            ? Colors.green
-                                            : Colors.red
+                                            ? Colors.green // 정답 녹색
+                                            : Colors.red // 오답 빨강
                                         : isCorrect
-                                            ? Colors.green
-                                            : Colors.grey.shade200
-                                    : Colors.grey.shade200,
-                                border: Border.all(
-                                  color: userChoice != null
-                                      ? isSelected
-                                          ? isCorrect
-                                              ? Colors.green
-                                              : Colors.red
-                                          : isCorrect
-                                              ? Colors.green
-                                              : Colors.grey.shade400
-                                      : Colors.grey.shade400,
-                                  width: 1.5,
-                                ),
+                                            ? Colors.green // 정답 강조
+                                            : Colors.grey.shade300 // 비선택 회색
+                                    : Colors.grey.shade300, // 기본 회색
                               ),
                               child: Text(
-                                '${optionIndex + 1}',
+                                '$optionNumber',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: widget.isCompact ? 10 : 12,
                                   fontWeight: FontWeight.bold,
-                                  color: userChoice != null
-                                      ? isSelected || isCorrect
+                                  color: userChoice != null // 선택 상태에 따른 숫자 색상
+                                      ? (isSelected || isCorrect) // 선택했거나 정답이면 흰색
                                           ? Colors.white
-                                          : Colors.grey.shade700
-                                      : Colors.grey.shade700,
+                                          : Colors.black54 // 그 외 어두운 회색
+                                      : Colors.black54, // 기본 어두운 회색
                                 ),
                               ),
                             ),
+                            // 선택지 내용 (텍스트 또는 이미지)
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -849,34 +921,17 @@ class _QuestionCardState extends State<QuestionCard> {
                                     isCorrect,
                                     userChoice != null,
                                   ),
-                                  if (userChoice != null) ...[
-                                    SizedBox(height: 8),
+                                  // 컴팩트 모드: 정답/오답 아이콘 표시
+                                  if (userChoice != null && widget.isCompact) ...[
+                                    SizedBox(height: 3),
                                     Row(
                                       children: [
                                         if (isSelected && isCorrect)
-                                          Text(
-                                            '정답입니다!',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          )
+                                          Icon(Icons.check_circle, color: Colors.green, size: 12)
                                         else if (isSelected && !isCorrect)
-                                          Text(
-                                            '오답입니다',
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          )
+                                          Icon(Icons.cancel, color: Colors.red, size: 12)
                                         else if (!isSelected && isCorrect)
-                                          Text(
-                                            '정답',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                          Icon(Icons.radio_button_unchecked, color: Colors.green, size: 12), // 정답 아이콘
                                       ],
                                     ),
                                   ],
@@ -889,17 +944,17 @@ class _QuestionCardState extends State<QuestionCard> {
                     );
                   }),
                 ),
-                
-                // 해설
-                if (showExplanation && userChoice != null && data.containsKey('Answer_description') && data['Answer_description'] != null) ...[
-                  SizedBox(height: 20),
+
+                // 해설 표시
+                if (showExplanation && userChoice != null && data.containsKey('Answer_description') && data['Answer_description'] != null && data['Answer_description'].toString().isNotEmpty) ...[
+                  SizedBox(height: widget.isCompact ? 8 : 12), // 선택지와 해설 사이 간격
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(widget.isCompact ? 10 : 14), // 해설 패딩
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      color: Colors.blueGrey.shade50, // 해설 배경색 변경
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blueGrey.shade100), // 해설 테두리
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -908,38 +963,38 @@ class _QuestionCardState extends State<QuestionCard> {
                           children: [
                             Icon(
                               Icons.lightbulb_outline,
-                              color: Colors.amber.shade700,
-                              size: 22,
+                              color: Colors.blueGrey.shade700, // 아이콘 색상 변경
+                              size: widget.isCompact ? 14 : 18,
                             ),
-                            SizedBox(width: 8),
+                            SizedBox(width: widget.isCompact ? 5 : 8),
                             Text(
                               '해설',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: widget.isCompact ? 12 : 15,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: Colors.blueGrey.shade800, // 텍스트 색상 변경
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 16),
+                        SizedBox(height: widget.isCompact ? 5 : 8), // 제목과 내용 사이 간격
                         Text(
-                          data['Answer_description'] ?? '해설이 제공되지 않았습니다.',
+                          data['Answer_description'] ?? '', // null 처리
                           style: TextStyle(
-                            fontSize: 16,
-                            height: 1.5,
-                            color: Colors.black87,
+                            fontSize: widget.isCompact ? 11 : 13, // 해설 폰트 크기
+                            height: 1.4, // 줄 간격
+                            color: Colors.black.withOpacity(0.75), // 약간 연하게
                           ),
                         ),
                       ],
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+              ], // Padding 내부 Column의 children 닫기
+            ), // Padding 닫기
+          ), // 문제 내용 섹션 Column 닫기
+        ], // 메인 Column의 children 닫기
+      ), // Container 닫기
+    ); // build 메서드 닫기
   }
-}
+} // _QuestionCardState 클래스 닫기
